@@ -1,4 +1,4 @@
 const allowedOrigins = {
-    origin: "http://localhost:3000",
+    origin: "https://letsplaychess.onrender.com",
     methods: ["GET", "POST"],
 }
