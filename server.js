@@ -19,31 +19,38 @@ const rooms = new Map();
 io.on("connection", (socket) => {
   console.log(`New client connected : ${socket.id}`);
 
-  // If a room is available with 1 player, join that room
   let joinedRoom = null;
-  for (const [roomId, players] of rooms.entries()) {
-    if (players.length === 1) {
-      joinedRoom = roomId;
-      players.push(socket.id);
-      break;
+
+  //TODO: 
+  socket.on("findGame", (data) => {
+    // If a room is available with 1 player, join that room
+
+    console.log(`${socket.id} has requested to join a room.`);
+
+    for (const [roomId, players] of rooms.entries()) {
+      if (players.length === 1) {
+        joinedRoom = roomId;
+        players.push(socket.id);
+        break;
+      }
     }
-  }
 
-  //If no room is available, create a new room
-  if (!joinedRoom) {
-    joinedRoom = `room-${rooms.size + 1}`;
-    rooms.set(joinedRoom, [socket.id]);
-  }
-  socket.join(joinedRoom);
+    //If no room is available, create a new room
+    if (!joinedRoom) {
+      joinedRoom = `room-${rooms.size + 1}`;
+      rooms.set(joinedRoom, [socket.id]);
+    }
+    socket.join(joinedRoom);
 
-  // Emit the joinedRoom event to the client
-  console.log(`Client ${socket.id} joined room ${joinedRoom}`);
-  socket.emit("joinedRoom", {room: joinedRoom, players: rooms.get(joinedRoom)});
+    // Emit the joinedGame event to the client
+    console.log(`Client ${socket.id} joined room ${joinedRoom}`);
+    socket.emit("joinedGame", {room: joinedRoom, players: rooms.get(joinedRoom)});
 
-  const players = rooms.get(joinedRoom);
-  if (players.length === 2) {
-    io.in(joinedRoom).emit("start");
-  }
+    const players = rooms.get(joinedRoom);
+    if (players.length === 2) {
+      io.in(joinedRoom).emit("startGame");
+    }
+  });
 
   socket.on("sendMove", (data) => {
     socket.to(joinedRoom).emit("receiveMove", data);
@@ -55,11 +62,15 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log("Client disconnected");
-    const players = rooms.get(joinedRoom);
-    players.splice(players.indexOf(socket.id), 1);
-    if (players.length === 0) {
-      rooms.delete(joinedRoom);
-    }
+    io.in(joinedRoom).emit("opponentDisconnected");
+    rooms.delete(joinedRoom);
+    // const players = rooms.get(joinedRoom);
+    // if(players){
+    //   players.splice(players.indexOf(socket.id), 1);
+    //   if (players.length === 0) {
+    //     rooms.delete(joinedRoom);
+    //   }
+    // }
   });
 });
 
